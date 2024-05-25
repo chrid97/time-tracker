@@ -1,14 +1,11 @@
 use std::{
-    collections::HashMap,
     env,
-    fmt::{write, Debug, Display},
+    fmt::Debug,
     fs,
-    io::{stdin, Read},
     time::{Duration, Instant},
 };
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 #[derive(Serialize, Deserialize)]
 struct Task {
@@ -27,18 +24,6 @@ impl Debug for Task {
     }
 }
 
-// struct Timer {
-//     time: Duration::time();
-// }
-
-// const POMODORO_TIMER_IN_MINUTES: u64 = 25;
-// const BREAK_TIMER_IN_MINUTES: u64 = 5;
-
-// enum Commands {
-//     Add,
-//     List,
-// }
-
 fn main() {
     let contents: String = match fs::read_to_string("./tasks.json") {
         Ok(contents) => contents,
@@ -54,7 +39,6 @@ fn main() {
     let command = &args[1].to_lowercase();
     // make sure the second argument is a string
     let text = &args[2];
-    // println!("{} {}", command, text);
 
     if command == "add" {
         let task = Task {
@@ -62,10 +46,8 @@ fn main() {
             time_spent: 0,
             description: text.clone(),
         };
-        tasks.push(task)
+        tasks.push(task);
+        let serialized_tasks = serde_json::to_string(&tasks).expect("Failed to serialize tasks");
+        fs::write("./tasks.json", serialized_tasks).unwrap();
     }
-    println!("{:?}", tasks);
-
-    let serialized_tasks = serde_json::to_string(&tasks).expect("Failed to serialize tasks");
-    fs::write("./tasks.json", serialized_tasks).unwrap();
 }
