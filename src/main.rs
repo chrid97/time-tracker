@@ -1,10 +1,4 @@
-use std::{
-    env,
-    fmt::Debug,
-    fs,
-    time::{Duration, Instant},
-};
-
+use std::{env, fmt::Debug, fs, process, time::Instant};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -49,5 +43,28 @@ fn main() {
         tasks.push(task);
         let serialized_tasks = serde_json::to_string(&tasks).expect("Failed to serialize tasks");
         fs::write("./tasks.json", serialized_tasks).unwrap();
+    }
+
+    if command == "timer" {
+        let timer = Instant::now();
+
+        loop {
+            let current_task = tasks
+                .iter_mut()
+                .find(|task| task.description == text.to_owned())
+                // remember how to pass a variable to an expect function
+                // i want to be able to use read back the entered task
+                .expect("Failed to find task");
+            let elapsed_time = timer.elapsed();
+            println!("{:?}", elapsed_time);
+            current_task.time_spent = elapsed_time.as_secs();
+            if elapsed_time.as_secs() == 10 {
+                let serialized_tasks =
+                    serde_json::to_string(&mut tasks).expect("Failed to serialize tasks");
+                fs::write("./tasks.json", serialized_tasks).unwrap();
+                println!("done!");
+                process::exit(0);
+            }
+        }
     }
 }
