@@ -44,7 +44,7 @@ fn main() {
         Ok(contents) => contents,
         Err(_) => {
             fs::write("./tasks.json", "").unwrap();
-            String::new()
+            String::from("[]")
         }
     };
 
