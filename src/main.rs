@@ -3,26 +3,32 @@ use std::{
     env,
     fmt::Debug,
     fs,
-    io::{self, Write},
+    io::{self, stdout, Write},
     process,
-    time::Instant,
+    time::{Instant, SystemTime},
 };
 
 #[derive(Serialize, Deserialize)]
 struct Task {
     name: String,
-    time_spent: u64,
+    time: Vec<StartAndStop>,
 }
 
-impl Debug for Task {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "\nTask {{ \n name: {},\n time_spent: {}\n }}",
-            self.name, self.time_spent
-        )
-    }
+#[derive(Serialize, Deserialize)]
+struct StartAndStop {
+    start_time: SystemTime,
+    end_time: SystemTime,
 }
+
+// impl Debug for Task {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(
+//             f,
+//             "\nTask {{ \n name: {},\n time_spent: {}\n }}",
+//             self.name, self.time_spent
+//         )
+//     }
+// }
 
 fn main() {
     let contents: String = match fs::read_to_string("./tasks.json") {
@@ -42,8 +48,8 @@ fn main() {
 
     if command == "add" {
         let task = Task {
-            time_spent: 0,
             name: text.clone(),
+            time: vec![],
         };
         tasks.push(task);
         let serialized_tasks = serde_json::to_string(&tasks).expect("Failed to serialize tasks");
@@ -51,26 +57,29 @@ fn main() {
     }
 
     if command == "timer" {
-        let timer = Instant::now();
+        let err_message = format!("Failed to find task name {}", text);
+        let mut active_task = tasks
+            .iter_mut()
+            .find(|task| task.name == text.to_owned())
+            .expect(&err_message);
 
+        let start_time = SystemTime::now();
+        let timer = Instant::now();
         loop {
-            let current_task = tasks
-                .iter_mut()
-                .find(|task| task.name == text.to_owned())
-                // remember how to pass a variable to an expect function
-                // i want to be able to use read back the entered task
-                .expect("Failed to find task");
-            let elapsed_time = timer.elapsed();
-            print!("\r{:?}", elapsed_time);
-            io::stdout().flush().unwrap();
-            current_task.time_spent = elapsed_time.as_secs();
-            if elapsed_time.as_secs() == 25 * 60 {
-                let serialized_tasks =
-                    serde_json::to_string(&mut tasks).expect("Failed to serialize tasks");
-                fs::write("./tasks.json", serialized_tasks).unwrap();
-                println!("done!");
-                process::exit(0);
-            }
+            print!("\r{}", secs_to_minutes(timer.elapsed().as_secs()));
+            stdout().flush().unwrap();
         }
+        // let end_time = SystemTime::now();
+        // active_task.time.push(StartAndStop {
+        //     start_time,
+        //     end_time,
+        // })
     }
+}
+
+// maybe replace u64 with Duration type
+fn secs_to_minutes(seconds: u64) -> String {
+    let minutes = seconds / 60;
+    let seconds = seconds % 60;
+    format!("{:02}:{:02}", minutes, seconds)
 }
